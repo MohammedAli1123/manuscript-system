@@ -1,0 +1,42 @@
+import streamimport pandas as pd
+from datetime import datetime
+
+st.set_page_config(layout="wide")
+
+# تنسيق RTL مع خط أسود غامق جداً للحقول
+st.markdown("""
+    <style>
+    .main { direction: rtl; text-align: right; }
+    div[data-testid="stBlock"] { direction: rtl; }
+    input, select { color: black !important; background-color: white !important; border: 1px solid black !important; }
+    label, p, h1, h3 { color: black !important; text-align: right !important; }
+    button { background-color: #1e5631 !important; color: white !important; width: 100%; height: 3em; }
+    </style>
+    """, unsafe_allow_html=True)
+
+SLA = {"إدارة الترميم والتعقيم": 15, "إدارة الرقمنة": 7, "إدارة الفهرسة": 10}
+
+st.title("نظام إدارة المخطوطات")
+
+if 'db' not in st.session_state:
+    st.session_state.db = pd.DataFrame(columns=["الرقم", "العنوان", "الإدارة", "التاريخ", "SLA", "الحالة"])
+
+with st.form("main_form"):
+    c1, c2 = st.columns(2)
+    with c2:
+        ms_id = st.text_input("رقم المخطوط")
+        ms_title = st.text_input("عنوان المخطوط")
+    with c1:
+        dept = st.selectbox("الإدارة", list(SLA.keys()))
+        m_date = st.date_input("تاريخ الاستلام", datetime.now())
+    
+    if st.form_submit_button("حفظ البيانات"):
+        if ms_id and ms_title:
+            diff = (datetime.now().date() - m_date).days
+            status = "🟢 منتظم" if diff <= SLA[dept] else f"🔴 متأخر ({diff - SLA[dept]} يوم)"
+            new_row = {"الرقم": ms_id, "العنوان": ms_title, "الإدارة": dept, "التاريخ": str(m_date), "SLA": SLA[dept], "الحالة": status}
+            st.session_state.db = pd.concat([st.session_state.db, pd.DataFrame([new_row])], ignore_index=True)
+            st.success("تم الحفظ")
+
+st.divider()
+st.table(st.session_state.db)
